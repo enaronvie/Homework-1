@@ -1,4 +1,0 @@
-module ALU_4_bit_tb();
-
-//determining registers::independent variables
-reg clk_tb, reset_tb()
