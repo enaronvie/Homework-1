@@ -12,7 +12,7 @@ module ALU_4_bit_tb();
   int error_ct; //error count varible initialization
   
 // Signed 4-bit edge values (zero, minimum, maximum]
-  const bit [3:0] edge values [3]=[4'b0000, 4'b1000, 4'b0111};
+  const bit [3:0] edgevalues [3]=[4'b0000, 4'b1000, 4'b0111};
   
 //Opcode error-check display msg
   const string opcode_name[byte]=[0: "Add", 1: "Sub", 2: "Bitwise Invert A", 3: "Reduction_OR_B"];
@@ -53,8 +53,8 @@ module ALU_4_bit_tb();
          begin                           
           reset_t=1'b0;
            //Testing for case A=0, B=0, Add, Sub
-           @(negedge clk_t) 
-           for (i=0; i<4; i++)
+           @(negedge clk_t); 
+           foreach (edgevalues[i])
              begin
                A_t=edgevalues[i]; //zero
                B_t=edgevalues[i]; //zero
@@ -95,20 +95,25 @@ module ALU_4_bit_tb();
  //Test for opcode NotA
      task NotA_test();
        begin
-         reset_t=1'b1;
-       @(posedge clk_t)
-       begin for (i=0; i<4; i++)
-         A_t=edgevalues[i];
-         !A_t=!edgevalues[i];
+         reset_t=1'b0 
+         foreach(edgevalues[i]) begin
+           
+           @(negedge clk_t);
+    
+       A_t=edgevalues[i];
        opcode_t=2'b10; // not A opcode
+           
+           @(negedge clk_t);
+           
         if (C_t !== !A_t)
           begin
             print_td();
+            print_ct();
           end else begin 
-            print_s();
+            print_s(); end
           end
       end
-                 end
+                  
       endtask
            
            
@@ -116,7 +121,57 @@ module ALU_4_bit_tb();
   task Reduce_OR_B_test();  
            
            
-    endtask       
+    endtask 
+           
+           
+  always #10 clk_t = ~clk_t;   
+  
+  
+  initial begin
+    
+    // Populate waveforms for EPWave
+    //	- Check EPWave box
+    //	- in the "Compile Options" add -debug_access+all
+    $vcdpluson;
+    $vcdplusmemon;
+    $dumpfile("dump.vcd"); 
+    $dumpvars;
+    
+  	// Initialize clock
+    clk_tb = 1'b1;
+    @(posedge clk_tb);
+    
+    print_td;
+    print_s();
+    print_ct();
+    add_test()
+    sub_test()
+    NotA_test();
+    Reduce_OR_B_test()
+    
+    // Generate, drive, score, and check 50 random test vectors
+    repeat(50) begin
+       random_var_generate();
+    end
+    
+    // End simulation
+    $display("Total errors: %d", error_ct);
+    $finish();
+    
+  end
+  
+  // Instance of regfile
+  ALU_4_bit 
+  ALU_inst(
+      .clk(clk_t), 
+    .reset(reset_t),
+    .Opcode(opcode_t),
+    .A(A_t),
+    .B(B_t),
+    .C(C_t) );
+endmodule
+           
+           
            
            
   end
