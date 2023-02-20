@@ -44,7 +44,6 @@ module ALU_4_bit_tb();
   task random_var_generate();
        begin
          {A_t, B_t, opcode_t, reset_t}=$urandom_range(0, 2047); // Total: 2047=(2^11)-1 for; 1-bit reset, 2-bit opcode, x2 4-bit input
-        print_td();
        end    
   endtask
    
@@ -52,15 +51,16 @@ module ALU_4_bit_tb();
     task add_test();
          begin                           
           reset_t=1'b0;
+           
            //Testing for case A=0, B=0, Add, Sub
            @(negedge clk_t); 
            foreach (edgevalues[i])
              begin
                A_t=edgevalues[i]; //zero
                B_t=edgevalues[i]; //zero
-           opcode_t=2'b00; //Add
-//          @(negedge clk_t);
-               if (C_t !== A_t + B_t )
+           opcode_t=2'b00; //Add opcode
+         @(negedge clk_t);
+               if (A_t + B_t !== C_t) //monitor logic
              begin 
                print_td();
                print_ct();
@@ -68,34 +68,56 @@ module ALU_4_bit_tb();
                print_s();
              end
          end
+         end 
     endtask
            
          //Test for opcode Sub
     task sub_test();
          begin                           
           reset_t=1'b0;
+           
            //Testing for case A=0, B=0, Add, Sub
-           @(negedge clk_t) 
-           for (i=0; i<4; i++)
+           @(negedge clk_t); 
+           foreach (edgevalues[i])
+             
              begin
                A_t=edgevalues[i]; //zero
                B_t=edgevalues[i]; //zero
-           opcode_t=2'b00; //Add
-//          @(negedge clk_t);
-               if (C_t !== A_t + B_t )
+           opcode_t=2'b01; //Add opcode
+         @(negedge clk_t);
+               
+               if (A_t > B_t) //monitor sign of B
+            begin 
+              
+              if (A_t - B_t !== C_t) //monitor logic
              begin 
                print_td();
                print_ct();
              end else begin
                print_s();
              end
+            end
+               
+              else if (A_t < B_t) 
+                begin
+                  B_t = !B_t + 1; //take 1's complement and 2's complement to do A_t + (-B_t)
+                  if (A_t + B_t !== C_t) //monitor logic
+             begin   
+               print_td();
+               print_ct();
+             end else begin
+               print_s();
+             end
+                end
+                        
          end
+         end 
     endtask
            
  //Test for opcode NotA
      task NotA_test();
        begin
-         reset_t=1'b0 
+         reset_t=1'b0; 
          foreach(edgevalues[i]) begin
            
            @(negedge clk_t);
@@ -105,22 +127,38 @@ module ALU_4_bit_tb();
            
            @(negedge clk_t);
            
-        if (C_t !== !A_t)
+           if (C_t !== !A_t) //monitor logic
           begin
             print_td();
             print_ct();
           end else begin 
             print_s(); end
           end
-      end
-                  
+      end              
       endtask
            
            
  //Test for opcode Reduction_OR_B
   task Reduce_OR_B_test();  
+        begin 
+       reset_t=1'b0 
+         foreach(edgevalues[i]) begin
            
+           @(negedge clk_t);
+    
+       B_t=edgevalues[i];
+       opcode_t=2'b11; // Reduction_OR_B opcode
            
+           @(negedge clk_t);
+           
+           if (C_t !== |B)//monitor logic
+          begin
+            print_td();
+            print_ct();
+          end else begin 
+            print_s(); end
+          end   
+        end 
     endtask 
            
            
@@ -141,7 +179,7 @@ module ALU_4_bit_tb();
     clk_tb = 1'b1;
     @(posedge clk_tb);
     
-    print_td;
+    print_td();
     print_s();
     print_ct();
     add_test()
