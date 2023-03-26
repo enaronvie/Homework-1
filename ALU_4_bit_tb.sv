@@ -1,9 +1,10 @@
 module ALU_4_bit_tb();
 
-//determining registers::independent variables/ stimulus
-  reg clk_t(), reset_t();
-  reg [1:0] opcode_t;
+//determining registers::independent variables stimulus
+  reg clk_t, reset_t;
+  bit [1:0] opcode_t;
   reg signed [3:0] A_t, B_t;
+
   
 //dependent varible/output
   wire signed [4:0] C_t;
@@ -12,20 +13,20 @@ module ALU_4_bit_tb();
   int error_ct; //error count varible initialization
   
 // Signed 4-bit edge values (zero, minimum, maximum]
-  const bit [3:0] edgevalues [3]=[4'b0000, 4'b1000, 4'b0111};
+  const bit [3:0] edgevalues [3]='{4'b0000, 4'b1000, 4'b0111};
   
 //Opcode error-check display msg
-  const string opcode_name[byte]=[0: "Add", 1: "Sub", 2: "Bitwise Invert A", 3: "Reduction_OR_B"];
+  const string opcode_name[4]='{"Add", "Sub", "Bitwise Invert A", "Reduction_OR_B"};
                                    
 //generate clock
    always  // no sensitivity list, so it always executes 
       begin
-    clk_t=1; #5; clk=0; #5 //10ns period
+    clk_t=1; #5; clk_t=0; #5; //10ns period
       end
                                    
 //Display error message for varibles; time, output & input
    task print_td();
-     $display("Time=%St, A=%4b, B=%4b, C=%5b, reset=%1b, opcode=$2b, opcodename=%s", $time(), A_t, B_t, C_t, reset_t, opcode_t, opcode_name[opcode_t]);
+     $display("Time=%t, A=%4b, B=%4b, C=%5b, reset=%1b, opcode=%2b, opcodename=%s", $time, A_t, B_t, C_t, reset_t, opcode_t, opcode_name[opcode_t]);
    endtask
   
 //success display message  
@@ -62,7 +63,6 @@ module ALU_4_bit_tb();
          @(negedge clk_t);
                if (A_t + B_t !== C_t) //monitor logic
              begin 
-               print_td();
                print_ct();
              end else begin
                print_s();
@@ -86,31 +86,13 @@ module ALU_4_bit_tb();
            opcode_t=2'b01; //Add opcode
          @(negedge clk_t);
                
-               if (A_t > B_t) //monitor sign of B
-            begin 
-              
               if (A_t - B_t !== C_t) //monitor logic
              begin 
-               print_td();
                print_ct();
              end else begin
                print_s();
              end
             end
-               
-              else if (A_t < B_t) 
-                begin
-                  B_t = !B_t + 1; //take 1's complement and 2's complement to do A_t + (-B_t)
-                  if (A_t + B_t !== C_t) //monitor logic
-             begin   
-               print_td();
-               print_ct();
-             end else begin
-               print_s();
-             end
-                end
-                        
-         end
          end 
     endtask
            
@@ -127,9 +109,8 @@ module ALU_4_bit_tb();
            
            @(negedge clk_t);
            
-           if (C_t !== !A_t) //monitor logic
+           if (C_t !== ~A_t) //monitor logic
           begin
-            print_td();
             print_ct();
           end else begin 
             print_s(); end
@@ -141,7 +122,7 @@ module ALU_4_bit_tb();
  //Test for opcode Reduction_OR_B
   task Reduce_OR_B_test();  
         begin 
-       reset_t=1'b0 
+       reset_t=1'b0; 
          foreach(edgevalues[i]) begin
            
            @(negedge clk_t);
@@ -151,9 +132,8 @@ module ALU_4_bit_tb();
            
            @(negedge clk_t);
            
-           if (C_t !== |B)//monitor logic
+           if (C_t !== |B_t)//monitor logic
           begin
-            print_td();
             print_ct();
           end else begin 
             print_s(); end
@@ -176,16 +156,16 @@ module ALU_4_bit_tb();
     $dumpvars;
     
   	// Initialize clock
-    clk_tb = 1'b1;
-    @(posedge clk_tb);
+    clk_t = 1'b1;
+    @(posedge clk_t);
     
-    print_td();
-    print_s();
-    print_ct();
-    add_test()
-    sub_test()
+    //print_td();
+    //print_s();
+    //print_ct();
+    add_test();
+    sub_test();
     NotA_test();
-    Reduce_OR_B_test()
+    Reduce_OR_B_test();
     
     // Generate, drive, score, and check 50 random test vectors
     repeat(50) begin
@@ -206,11 +186,8 @@ module ALU_4_bit_tb();
     .Opcode(opcode_t),
     .A(A_t),
     .B(B_t),
-    .C(C_t) );
-endmodule
-           
-           
-           
-           
-  end
+    .C(C_t));
+
+ 
+    
 endmodule
